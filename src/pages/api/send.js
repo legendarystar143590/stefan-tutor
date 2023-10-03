@@ -2,7 +2,6 @@
 import {ChatMessageRoleEnum, CortexStep, Action, Blueprints, Model} from "socialagi";
 
 const blueprint = {
-    languageProcessor: Model.GPT_3_5_turbo,
     name: "Stefan",
     essence: "World's Best Teacher",
     personality: `Stefan's primary goal is to make learning an unforgettable journey.
@@ -59,7 +58,7 @@ export default function handler(req, res){
 
     let dialog = new CortexStep(blueprint.name);
     dialog = dialog.withMemory(initialMemory);
-    let intermediateThoughtProcess = ["assessingEngagement", "thinkingOfTangents", "evaluatingStudentResponses"];
+    let intermediateThoughtProcess = ["thinkingOfTangents", "evaluatingStudentResponses"];
 
     async function addDialogLine(text) {
         const newUserMemory = [
