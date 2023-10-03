@@ -41,7 +41,6 @@ const blueprint = {
 export default function handler(req, res){
     const {message} = req.body;
     
-    console.log(process.env.OPENAI_API_KEY);
     // const blueprint = Blueprints.SAMANTHA;
 
     const goal = `Making the learning experience engaging and effective`;
