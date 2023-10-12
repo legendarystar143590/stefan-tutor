@@ -50,7 +50,7 @@ function Chat() {
         ]);
         setSoulThoughts((messages=> [
           ...messages,
-          {sender:"start", text: `Stefan feels: ${data.feels}`},
+          {sender:"start", text: `Stefan feels user is: ${data.feels}`},
         ]));
         setSoulThoughts((messages=> [
           ...messages,

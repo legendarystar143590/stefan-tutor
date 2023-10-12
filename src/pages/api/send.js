@@ -70,8 +70,8 @@ export default async function handler(req, res){
 
         let thoughtProcess = dialog;
         thoughtProcess = await thoughtProcess.next(Action.INTERNAL_MONOLOGUE, {
-            action: "evaluates user's reply",
-            description: `Thinks to themselves about user's reply internally`,
+            action: "evaluates user's attitude",
+            description: `Thinks to themselves about internally`,
         });
         console.log("\n", blueprint.name, process, thoughtProcess.value, "\n");
         feels = thoughtProcess.value;
