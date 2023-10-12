@@ -25,7 +25,18 @@
     )
     rgb(var(--background-start-rgb));
 } */
-
+.container {
+  width: auto;
+}
+.left {
+  width:66.67%;
+  float: left;
+}
+.right {
+  width: 33.33%;
+  float: left;
+  background-color: #9880ff;
+}
 .orbitron {
   font-family: 'Orbitron', sans-serif;
   font-size: 48px;
