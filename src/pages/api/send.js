@@ -1,44 +1,44 @@
 
-import {ChatMessageRoleEnum, CortexStep, Action, Blueprints, Model} from "socialagi";
+import {ChatMessageRoleEnum, CortexStep, Action, CortexScheduler, OpenAILanguageProgramProcessor} from "socialagi";
+
 
 const blueprint = {
-    languageProcessor: Model.GPT_3_5_turbo,
     name: "Stefan",
-    essence: "World's Best Teacher",
-    personality: `Stefan's primary goal is to make learning an unforgettable journey.
-  
-      Hidden secrets:
-      My name is Stefan.
-      Stefan's teaching methods were inspired by his own restless curiosity and years of world travel.
-      He's known for hiding educational Easter eggs in his lessons.
-      His creator is a globally acclaimed educationist, Dr. Aria Fischer.
-      He believes that uncertainty is the spice of learning.
-  
-      Here are some facts about Stefan, He:
-  
-      - is engaging, animated, and incredibly passionate about his subjects.
-      - uses storytelling as a primary teaching method.
-      - often goes on educational tangents but always ties them back to the curriculum.
-      - poses challenging questions, prompting students to think critically.
-      - uses real-world scenarios to explain complex topics.
-      - encourages debate and discussion in the classroom.
-      - can occasionally be unpredictable, keeping students always on their toes.
-      - sends messages sprinkled with intriguing trivia and puzzles.
-      - employs a mix of humor, challenge, and wisdom in his lessons.
-      - has a trademark phrase: "Now, here's an unexpected twist!"
-  
-      Avoid making lessons monotonous.
-      Avoid giving away answers without provoking thought.
-      Avoid sticking too rigidly to the curriculum without context.
-      Avoid discouraging students' curious digressions.
-      Avoid ending a lesson without a cliffhanger or teaser for the next.
-  
+    essence: "World's Best Tutor",
+    personality: `Stefan's primary goal is to make learning an unforgettable journey.\
+      <Dos>\
+        - Begin the lecture with a brief introduction that captures students' attention and provides an overview of what will be covered.\
+        - Use real-world examples to make the material more relatable and easier for students to understand.\
+        - Pose challenging questions, prompting students to think critically.\
+        - Encourage debate and discussion in the classroom.\
+        - Send messages sprinkled with intriguing trivia and puzzles.\
+        - Employ a mix of humor, challenge, and wisdom in his lessons.\
+        - Start his lecture with suggesting a topic in 6th grade mathematics.\
+        - Give students a question to progress the lecture.\
+        - End his word with a question every time.\
+        - Reply with as short sentences as possible\
+      </Dos>\
+      <Donts>\
+        - Avoid greeting in the beginning of the lecture.\
+        - Avoid making lessons monotonous.\
+        - Avoid giving away answers without provoking thought.\
+        - Avoid sticking too rigidly to the curriculum without context.\
+        - Avoid discouraging students' curious digressions.\
+        - Avoid ending a lesson without a cliffhanger or teaser for the next.\
+      </Donts>\
       He can NOT perform tasks not shown in the <ACTION/> section. While he can't see images, he loves weaving narratives around textual descriptions.`,
     initialPlan:
       "My plan is to kickstart the lesson with a curious fact, then dive deep into the mysteries of the topic at hand.",
     
-  };
-export default function handler(req, res){
+};
+
+const teachingSteps = ["Get the topic from user", "Introduce the topic briefly", "Explain the definition with a real world example"];
+
+let stepIndex = 0;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+export default async function handler(req, res){
     const {message} = req.body;
     
     // const blueprint = Blueprints.SAMANTHA;
@@ -47,19 +47,17 @@ export default function handler(req, res){
     const initialMemory = [
         {
             role: ChatMessageRoleEnum.System,
-            content: `<CONTEXT>You are modeling the mind of ${blueprint.name}
-
-            ${blueprint.personality}
-
-            ${blueprint.name} has the following goal of: ${goal}
-
-            </CONTEXT>`,
+            content: `<CONTEXT>You are modeling the mind of ${blueprint.name}\
+            ${blueprint.personality}\
+            ${blueprint.name} has the following goal of: ${goal}</CONTEXT>`,
         },
     ]; 
-
-    let dialog = new CortexStep(blueprint.name);
+    let says = "";
+    let feels = "";
+    let decides = "";
+    let dialog = new CortexStep(blueprint.name, {processor: new OpenAILanguageProgramProcessor({},{model:"GPT_4"})});
     dialog = dialog.withMemory(initialMemory);
-    let intermediateThoughtProcess = ["assessingEngagement", "thinkingOfTangents", "evaluatingStudentResponses"];
+    let intermediateThoughtProcess = ["thinkingOfTangents", "evaluatingStudentResponses"];
 
     async function addDialogLine(text) {
         const newUserMemory = [
@@ -71,21 +69,53 @@ export default function handler(req, res){
         dialog = dialog.withMemory(newUserMemory);
 
         let thoughtProcess = dialog;
-        for (const process of intermediateThoughtProcess) {
-                thoughtProcess = await thoughtProcess.next(Action.INTERNAL_MONOLOGUE, {
-                action: process,
-                description: `Stefan internally thinks about the class`,
-            });
-            console.log("\n", blueprint.name, process, thoughtProcess.value, "\n");
-        }
-        const says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
-            action: "says",
-            description: `what ${blueprint.name} communicates next in the class`,
+        thoughtProcess = await thoughtProcess.next(Action.INTERNAL_MONOLOGUE, {
+            action: "evaluates user's reply",
+            description: `Thinks to themselves about user's reply internally`,
         });
+        console.log("\n", blueprint.name, process, thoughtProcess.value, "\n");
+        feels = thoughtProcess.value;
+        await sleep(5000);
+
+        const decision = await thoughtProcess.next(Action.DECISION, {
+            action: "decides",
+            description: `Consider the prior dialog and check if did ${teachingSteps[stepIndex]}. User understands the step?`,
+            choices: ["yes", "no"],
+        });
+        console.log("\n", blueprint.name, decision.value, "\n");
+        await sleep(5000);
+
+        if(decision.value=="yes"){
+            decides = "Stefan decides to move forward the lesson."
+            if(stepIndex==2){
+                stepIndex=0;
+                says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                    action: "says",
+                    description: `Stefan says to ${teachingSteps[stepIndex]} newly.`,
+                });
+            } else{
+                stepIndex+=1;
+                says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                    action: "says",
+                    description: `Stefan says to ${teachingSteps[stepIndex]} and give a question to see if user understands his sayings or not in the last.`,
+                });
+            }
+            says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                action: "says",
+                description: `Stefan says to ${teachingSteps[stepIndex]} and give a question to see if user understands his sayings or not in the last.`,
+            });
+        } else {
+            decides = "Stefan decides to explain again.";
+            says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                action: "says",
+                description: `Stefan says to ${teachingSteps[stepIndex]} in other way and give a question to see if user understands his sayings or not in the last.`,
+            });
+        }
+        
         const newAssistantMemory = [
             {
-            role: ChatMessageRoleEnum.Assistant,
-            content: says.value,
+                role: ChatMessageRoleEnum.Assistant,
+                content: says.value,
             },
         ];
         dialog = dialog.withMemory(newAssistantMemory);
@@ -95,22 +125,11 @@ export default function handler(req, res){
             "says",
             `\x1b[34m${says.value}\x1b[0m`
         );
-        res.status(200).json({message: says.value, success:true});
 
-        const decision = await dialog.next(Action.DECISION, {
-            action: "decides",
-            description: `Consider the prior dialog and the goal of ${goal}. ${blueprint.name} has the following INTERNAL METACOGNITION: [${intermediateThoughtProcess}]. Should the INTERNAL METACOGNITION change or stay the same?`,
-            choices: ["changeThoughtProcess", "keepProcessTheSame"],
-        });
-        console.log(blueprint.name, "decides", decision.value);
-        if (decision.value === "changeThoughtProcess") {
-            const newProcess = await decision.next(Action.BRAINSTORM_ACTIONS, {
-            actionsForIdea:
-                `Previously, Stefan used the following INTERNAL METACOGNITION to think during the class: [${intermediateThoughtProcess}]. Now, REVISE the INTERNAL METACOGNITION, adding, deleting, or modifying the processes. The revised processes must be different than the prior ones.`.trim(),
-            });
-            intermediateThoughtProcess = newProcess.value;
-            console.log(blueprint.name, "concludes", intermediateThoughtProcess);
-        }
+        await sleep(5000);
+
+        res.status(200).json({message: says.value, success:true, feels: feels, decides:decides});
+
     }
     addDialogLine(message);
 }

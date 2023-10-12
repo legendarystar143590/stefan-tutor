@@ -9,6 +9,7 @@
   "author": "SocialAGI",
   "license": "ISC",
   "dependencies": {
+    "@babel/preset-env": "^7.23.2",
     "@babel/preset-react": "^7.16.5",
     "@vercel/analytics": "^0.1.11",
     "autoprefixer": "10.4.14",
@@ -32,6 +33,7 @@
     ]
   },
   "devDependencies": {
+    "dotenv": "^16.3.1",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-recommended": "^4.1.0",
     "eslint-plugin-prettier": "^4.2.1",
