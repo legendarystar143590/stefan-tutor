@@ -25,6 +25,7 @@ function Chat() {
   };
 
   async function sendMessage(message) {
+    try{
       setMessages([...messages, { sender: "end", text: message }]);
       setLoading(true);
       const res = await fetch('/api/send', {
@@ -66,25 +67,11 @@ function Chat() {
         }
         done = isDone;
       }
-      // if (data.success) {
-      //   setMessages((messages) => [
-      //     ...messages,
-      //     { sender: "start", text: data.message },
-      //   ]);
-      //   setSoulThoughts((messages=> [
-      //     ...messages,
-      //     {sender:"start", text: `Stefan feels ${data.feels}`},
-      //   ]));
-      //   setSoulThoughts((messages=> [
-      //     ...messages,
-      //     {sender:"start", text: `${data.decides}`},
-      //   ]));
-      //   setSoulThoughts((messages=> [
-      //     ...messages,
-      //     {sender:"start", text: `Stefan sent message: ${data.message}`},
-      //   ]));
-      //   setLoading(false);
-      // }
+    }
+    catch(error){
+      console.error('Error fetching data:', error);
+    }
+      
       
   }
   const scrollToBottom = () => {
