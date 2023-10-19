@@ -141,7 +141,7 @@ export default async function handler(req, res){
         );
         res.end(says.value);
         
-        // await sleep(10000);
+        await sleep(10000);
         console.log(stepIndex);
 
         // res.status(200).json({message: says.value, success:true, feels: feels, decides:decides});
