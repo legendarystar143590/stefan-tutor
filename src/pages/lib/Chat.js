@@ -4,12 +4,12 @@ import React, { useState, useEffect, useRef } from "react";
 function Chat() {
   
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([{ sender: "start", text: "Welcome to my class. I'm Stefan, the best tutor in the world. Please tell me what you want to learn today?" }]);
+  const [messages, setMessages] = useState([{ sender: "start", text: "Welcome to my class. I'm Stefan, the best tutor in the world." }]);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const soulMessagesEndRef = useRef(null);
   const [soulThoughts, setSoulThoughts] = useState(
-    [{ sender: "start", text: "Welcome to my class. I'm Stefan, the best tutor in the world. Please tell me what you want to learn today?" }]
+    [{ sender: "start", text: "Welcome to my class. I'm Stefan, the best tutor in the world." }]
   );
   
   const scrollToBottomThoughts = () => {
@@ -26,8 +26,7 @@ function Chat() {
 
   async function sendMessage(message) {
       setMessages([...messages, { sender: "end", text: message }]);
-      setLoading(true)
-
+      setLoading(true);
       const res = await fetch('/api/send', {
         method: 'POST',
         headers: {
@@ -35,28 +34,57 @@ function Chat() {
         },
         body: JSON.stringify({ message }),
       });
-    
-      const data = await res.json();
-    
-      if (data.success) {
-        setMessages((messages) => [
-          ...messages,
-          { sender: "start", text: data.message },
-        ]);
-        setSoulThoughts((messages=> [
-          ...messages,
-          {sender:"start", text: `Stefan feels : ${data.feels}`},
-        ]));
-        setSoulThoughts((messages=> [
-          ...messages,
-          {sender:"start", text: `Stefan decides: ${data.decides}`},
-        ]));
-        setSoulThoughts((messages=> [
-          ...messages,
-          {sender:"start", text: `Stefan sent message: ${data.message}`},
-        ]));
-        setLoading(false);
+      let done = false;
+      let chunks = [];
+      const data = await res.body.getReader();
+      while(!done){
+        const {value, done: isDone} = await data.read();
+        const value1 = new TextDecoder().decode(value);
+        chunks.push(value1);
+        if(chunks.length==1){
+          setSoulThoughts((messages=> [
+            ...messages,
+            {sender:"start", text: `Stefan feels: ${value1}`},
+          ]));
+        }
+        if ( chunks.length==2){
+          setSoulThoughts((messages=> [
+            ...messages,
+            {sender:"start", text: `${value1}`},
+          ]));
+        }
+        if(chunks.length==3){
+          setSoulThoughts((messages=> [
+            ...messages,
+            {sender:"start", text: `Stefan sent message: ${value1}`},
+          ]));
+          setMessages((messages) => [
+                ...messages,
+                { sender: "start", text: value1 },
+              ]);
+          setLoading(false);
+        }
+        done = isDone;
       }
+      // if (data.success) {
+      //   setMessages((messages) => [
+      //     ...messages,
+      //     { sender: "start", text: data.message },
+      //   ]);
+      //   setSoulThoughts((messages=> [
+      //     ...messages,
+      //     {sender:"start", text: `Stefan feels ${data.feels}`},
+      //   ]));
+      //   setSoulThoughts((messages=> [
+      //     ...messages,
+      //     {sender:"start", text: `${data.decides}`},
+      //   ]));
+      //   setSoulThoughts((messages=> [
+      //     ...messages,
+      //     {sender:"start", text: `Stefan sent message: ${data.message}`},
+      //   ]));
+      //   setLoading(false);
+      // }
       
   }
   const scrollToBottom = () => {

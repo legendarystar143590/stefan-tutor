@@ -5,7 +5,7 @@ import {ChatMessageRoleEnum, CortexStep, Action, CortexScheduler, OpenAILanguage
 const blueprint = {
     name: "Stefan",
     essence: "World's Best Tutor",
-    personality: `Stefan's primary goal is to make learning an unforgettable journey.\
+    personality: `Stefan's primary goal is to make learning an unforgettable journey. He is the best 6th grade mathematics tutor in the world.\
       <Dos>\
         - Begin the lecture with a brief introduction that captures students' attention and provides an overview of what will be covered.\
         - Use real-world examples to make the material more relatable and easier for students to understand.\
@@ -16,6 +16,7 @@ const blueprint = {
         - Start his lecture with suggesting a topic in 6th grade mathematics.\
         - Give students a question to progress the lecture.\
         - End his word with a question every time.\
+        - Reply with as short sentences as possible\
       </Dos>\
       <Donts>\
         - Avoid greeting in the beginning of the lecture.\
@@ -31,28 +32,42 @@ const blueprint = {
     
 };
 
-const teachingSteps = ["Get the topic from user", "Introduce the topic briefly", "Explain the topic with a real world example"];
+const teachingSteps = ["Suggest a new topic", "Introduce the topic briefly", "Explain the definition with a real world example"];
 
 let stepIndex = 0;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+const goal = `Teaching the user about the topic like the best tutor in the real classroom`;
+let initialMemory = [
+    {
+        role: ChatMessageRoleEnum.System,
+        content: `<CONTEXT>You are modeling the mind of ${blueprint.name}\
+        ${blueprint.personality}\
+        ${blueprint.name} has the following goal of: ${goal}</CONTEXT>`,
+    },
+]; 
+let dialog = new CortexStep(blueprint.name, {processor: new OpenAILanguageProgramProcessor({},{model:"GPT_3_5_turbo_16k_0613"})});
 
-export default function handler(req, res){
-    const {message} = req.body;
+function init(){
+  
+}
+export default async function handler(req, res){
+    const message = req.body.message;
+    const index = req.body.index;
     
     // const blueprint = Blueprints.SAMANTHA;
 
-    const goal = `Making the learning experience engaging and effective`;
-    const initialMemory = [
-        {
-            role: ChatMessageRoleEnum.System,
-            content: `<CONTEXT>You are modeling the mind of ${blueprint.name}\
-            ${blueprint.personality}\
-            ${blueprint.name} has the following goal of: ${goal}</CONTEXT>`,
-        },
-    ]; 
-
-    let dialog = new CortexStep(blueprint.name, {processor: new OpenAILanguageProgramProcessor({},{model:"GPT_4"})});
-    dialog = dialog.withMemory(initialMemory);
-    let intermediateThoughtProcess = ["thinkingOfTangents", "evaluatingStudentResponses"];
+    let says = "";
+    let feels = "";
+    let decides = "";
+    let thoughtProcess = null;
+    if(stepIndex==0){
+        dialog = dialog.withMemory(initialMemory);
+    }
+    if(index ==0){
+        
+    }
 
     async function addDialogLine(text) {
         const newUserMemory = [
@@ -63,29 +78,60 @@ export default function handler(req, res){
         ];
         dialog = dialog.withMemory(newUserMemory);
 
-        let thoughtProcess = dialog;
-        
-        thoughtProcess = await thoughtProcess.next(Action.INTERNAL_MONOLOGUE, {
-            action: "feels",
-            description: `Thinks to themselves internally`,
-        });
-        console.log("\n", blueprint.name, process, thoughtProcess.value, "\n");
+    let thoughtProcess = dialog;
+    thoughtProcess = await thoughtProcess.next(Action.INTERNAL_MONOLOGUE, {
+        action: "thinks of user's reply",
+        description: `Thinks to themselves about internally A:`,
+    });
+    console.log("\n", blueprint.name, thoughtProcess.value, "\n");
+    feels = thoughtProcess.value;
+    await sleep(20000);
 
-        const decision = await dialog.next(Action.DECISION, {
-            action: "decides",
-            description: `Consider the prior dialog and check if did ${teachingSteps[stepIndex]}. User understands the step?`,
-            choices: ["yes", "no"],
-        });
-        console.log("\n", blueprint.name, decision.value, "\n");
-        
-        const says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+    const decision = await thoughtProcess.next(Action.DECISION, {
+        action: "decides",
+        description: `Q: Decises if Stefan got the goal of ${teachingSteps[stepIndex]} or User understands the step based on the last message? A:`,
+        choices: ["yes", "no"],
+    });
+    console.log("\n", blueprint.name, decision.value, "\n");
+    await sleep(20000);
+
+    if(decision.value=="yes"){
+        decides = "Stefan decides to move forward the lesson."
+        if(stepIndex==2){
+            stepIndex=0;
+            says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                action: "says",
+                description: `Suggest to ${teachingSteps[stepIndex]} newly.`,
+            });
+        } else{
+            stepIndex+=1;
+            says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                action: "says",
+                description: `Give a compliment for good understanding and suggest to ${teachingSteps[stepIndex]} and give a question to see if user understands his sayings or not in the last.`,
+            });
+        }
+        says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
             action: "says",
-            description: `what ${blueprint.name} communicates next in the class. Not saying greetings.`,
+            description: `Q:Suggest to ${teachingSteps[stepIndex]} and give a question to see if user understands his sayings or not in the last. A:`,
         });
+    } else {
+        decides = "Stefan decides to explain again.";
+        if(stepIndex==0){
+            says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+                action: "says",
+                description: `Suggest a new lesson topic in 6th grade mathematics lecture and ask if you agree with the topic or not.`,
+            });
+        }
+        says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
+            action: "says",
+            description: `Suggest to ${teachingSteps[stepIndex]} in other way and give a question to see if user understands his sayings or not in the last.`,
+        });
+    }
+        
         const newAssistantMemory = [
             {
-            role: ChatMessageRoleEnum.Assistant,
-            content: says.value,
+                role: ChatMessageRoleEnum.Assistant,
+                content: says.value,
             },
         ];
         dialog = dialog.withMemory(newAssistantMemory);
@@ -95,31 +141,11 @@ export default function handler(req, res){
             "says",
             `\x1b[34m${says.value}\x1b[0m`
         );
-        // if (decision.value === "changeTopic") {
-        //     const newProcess = await decision.next(Action.BRAINSTORM_ACTIONS, {
-        //     actionsForIdea:
-        //         `Previously, Stefan used the following INTERNAL METACOGNITION to think during the class: [${intermediateThoughtProcess}]. Now, Explain the INTERNAL METACOGNITION, adding, deleting, or modifying the processes. The revised processes must be different than the prior ones. End with question.`.trim(),
-        //     });
-        //     intermediateThoughtProcess = newProcess.value;
-        //     console.log(blueprint.name, "concludes", intermediateThoughtProcess);
-        // }
-        // else if (decision.value === "suggestMore") {
-        //     const newProcess = await decision.next(Action.BRAINSTORM_ACTIONS, {
-        //     actionsForIdea:
-        //         `Previously, Stefan used the following INTERNAL METACOGNITION to think during the class: [${intermediateThoughtProcess}]. Now, Suggest higher level of concep for the topic. The processes must be different than the prior ones. End with question.`.trim(),
-        //     });
-        //     intermediateThoughtProcess = newProcess.value;
-        //     console.log(blueprint.name, "concludes", intermediateThoughtProcess);
-        // }
-        // else if (decision.value === "keepExplaining") {
-        //     const newProcess = await decision.next(Action.BRAINSTORM_ACTIONS, {
-        //     actionsForIdea:
-        //         `Previously, Stefan used the following INTERNAL METACOGNITION to think during the class: [${intermediateThoughtProcess}]. Now, Explain the topic with more understandable way. The processes must be different than the prior ones. End with question.`.trim(),
-        //     });
-        //     intermediateThoughtProcess = newProcess.value;
-        //     console.log(blueprint.name, "concludes", intermediateThoughtProcess);
-        // }
-        res.status(200).json({message: says.value, success:true});
+
+        await sleep(20000);
+        console.log(stepIndex);
+
+        res.status(200).json({message: says.value, success:true, feels: feels, decides:decides});
 
     }
     addDialogLine(message);
