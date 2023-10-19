@@ -82,7 +82,7 @@ export default async function handler(req, res){
     console.log("\n", blueprint.name, thoughtProcess.value, "\n");
     feels = thoughtProcess.value;
     res.write(feels.toString());
-    // await sleep(20000);
+    await sleep(5000);
 
     const decision = await thoughtProcess.next(Action.DECISION, {
         action: "decides",
@@ -112,7 +112,7 @@ export default async function handler(req, res){
     } else {
         decides = "Stefan decides to explain again.";
         res.write(decides.toString());
-        // await sleep(10000);
+        await sleep(8000);
 
         if(stepIndex==0){
             says = await thoughtProcess.next(Action.EXTERNAL_DIALOG, {
@@ -139,9 +139,9 @@ export default async function handler(req, res){
             "says",
             `\x1b[34m${says.value}\x1b[0m`
         );
+        
         res.end(says.value);
         
-        await sleep(10000);
         console.log(stepIndex);
 
         // res.status(200).json({message: says.value, success:true, feels: feels, decides:decides});
